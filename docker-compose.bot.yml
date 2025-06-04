@@ -1,0 +1,15 @@
+services:
+  bot:
+    build: .
+    container_name: docs_llm_bot
+    restart: always
+    command: python bot.py
+    env_file:
+      - .env
+    environment:
+      TELEGRAM_TOKEN: ${TELEGRAM_TOKEN}
+    volumes:
+      - uploads:/app/uploads
+
+volumes:
+  uploads:

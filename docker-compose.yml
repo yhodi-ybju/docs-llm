@@ -1,0 +1,87 @@
+services:
+  postgres:
+    image: postgres:15
+    container_name: docs_llm_db
+    restart: always
+    environment:
+      POSTGRES_DB: docs_llm_db
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: 2003
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7
+    container_name: docs_llm_redis
+    restart: always
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  web:
+    build: .
+    container_name: docs_llm_web
+    restart: always
+    ports:
+      - "8000:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    env_file:
+      - .env
+    environment:
+      POSTGRES_URL: postgresql://postgres:2003@postgres:5432/docs_llm_db
+      CELERY_BROKER_URL: redis://redis:6379/0
+    volumes:
+      - uploads:/app/uploads
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8000/ || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  celery:
+    build: .
+    container_name: docs_llm_celery
+    restart: always
+    command: celery -A docs_llm worker --loglevel=info
+    depends_on:
+      redis:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+    env_file:
+      - .env
+    environment:
+      POSTGRES_URL: postgresql://postgres:2003@postgres:5432/docs_llm_db
+      CELERY_BROKER_URL: redis://redis:6379/0
+    volumes:
+      - uploads:/app/uploads
+
+  bot:
+    build: .
+    container_name: docs_llm_bot
+    restart: always
+    command: python bot.py
+    depends_on:
+      web:
+        condition: service_started
+    env_file:
+      - .env
+    environment:
+      TELEGRAM_TOKEN: ${TELEGRAM_TOKEN}
+    volumes:
+      - uploads:/app/uploads
+
+volumes:
+  pgdata:
+  uploads:
