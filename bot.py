@@ -66,5 +66,8 @@ async def handle_query(message: types.Message):
         logger.exception("Answer error")
         await message.answer(f"Ошибка при ответе: {e}")
 
-if __name__ == '__main__':
-    dp.run_polling(bot, skip_updates=True)
+async def main():
+    await dp.start_polling(bot, skip_updates=True)
+
+if __name__ == "__main__":
+    asyncio.run(main())

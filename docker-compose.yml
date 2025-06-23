@@ -1,3 +1,5 @@
+version: "3.9"
+
 services:
   postgres:
     image: postgres:15
@@ -29,6 +31,7 @@ services:
     build: .
     container_name: docs_llm_web
     restart: always
+    command: bash -c "python manage.py migrate && gunicorn docs_llm.wsgi:application --bind 0.0.0.0:8000"
     ports:
       - "8000:8000"
     depends_on:
@@ -44,7 +47,7 @@ services:
     volumes:
       - uploads:/app/uploads
     healthcheck:
-      test: ["CMD-SHELL", "curl -f http://localhost:8000/ || exit 1"]
+      test: [ "CMD-SHELL", "curl -f http://localhost:8000/swagger/ || exit 1" ]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -55,9 +58,9 @@ services:
     restart: always
     command: celery -A docs_llm worker --loglevel=info
     depends_on:
-      redis:
-        condition: service_healthy
       postgres:
+        condition: service_healthy
+      redis:
         condition: service_healthy
     env_file:
       - .env
@@ -74,11 +77,12 @@ services:
     command: python bot.py
     depends_on:
       web:
-        condition: service_started
+        condition: service_healthy
     env_file:
       - .env
     environment:
       TELEGRAM_TOKEN: ${TELEGRAM_TOKEN}
+      DJANGO_SETTINGS_MODULE: docs_llm.settings
     volumes:
       - uploads:/app/uploads
 

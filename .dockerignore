@@ -1,0 +1,24 @@
+# Кэш Python
+__pycache__/
+*.py[cod]
+*.pyd
+
+# Виртуальное окружение
+.venv/
+venv/
+
+# Модели и большие бинарники
+*.safetensors
+*.gguf
+*.bin
+*.pt
+
+# Персональные переменные окружения
+.env
+
+# Данные, которые не нужно класть в образ
+uploads/
+vectorstore/
+models/
+app/offload/
+
